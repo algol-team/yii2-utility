@@ -1,0 +1,21 @@
+{
+    "name": "algol-team/library-yii2",
+    "description": "This is Yii2 utilities.",
+    "keywords": ["php", "utility", "yii2", "widget", "framework"],
+    "type": "library",
+    "license": "BSD-3-Clause",
+    "autoload": {
+        "files": ["Utility.php"]
+    },
+    "authors": [
+        {
+            "name": "algol-team",
+            "email": "algol.team.uz@gmail.com"
+        }
+    ],
+    "minimum-stability": "alpha",
+    "require": {
+        "php": ">=5.6.0",
+        "yiisoft/yii2": "~2.0.1"
+    }
+}
