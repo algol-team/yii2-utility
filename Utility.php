@@ -8,14 +8,13 @@
  ********************************************************************************/
 
 use yii\grid\DataColumn;
-use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use yii\helpers\Json;
 use yii\helpers\VarDumper;
 use yii\web\AssetBundle;
 
 /**
- * ExpandColumn
+ * ALGOL_YII
  *
  * @category  Class
  * @package   Utility-Yii2
@@ -24,262 +23,145 @@ use yii\web\AssetBundle;
  * @link      https://github.com/algol-team
  */
 
-class ExpandColumn extends DataColumn
-{
-    const EXPANDABLE_BEGINNING_CLASS_NAME = 'expand-column';
+class ALGOL_YII {
 
     /**
-     * @var string unique identifier of column
-     */
-    public $column_id;
-
-    /**
-     * @var string the route to call via AJAX to get the data from
-     */
-    public $url;
-
-    /**
-     * @var array|Closure the HTML attributes for the expandable element
-     */
-    public $expandableOptions = [];
-
-    /**
-     * @var bool if set to true, there won't be more than one AJAX request. If set to false, the widget will
-     * continuously make AJAX requests. This is useful if the data could vary. If the data does not change then
-     * is better to set it to true. Defaults to true.
-     */
-    public $enableCache = true;
-
-    /**
-     * @var string the message that is displayed on the newly created row in case there is an AJAX error.
-     */
-    public $ajaxErrorMessage = 'Error';
-
-    /**
-     * @var string the HTTP method to use for the request
-     */
-    public $ajaxMethod = 'GET';
-
-    /**
-     * @var Closure data into the query string being sent to the server.
-     * Default: the row id is sent as 'id'.
-     * function ($model, $key, $index) { return ['param' => $model->field];}
-     */
-    public $submitData;
-
-    /**
-     * @var string the HTML tag for the loading icon (glyphicon, font awesome icon or tag img)
-     */
-    public $loadingIcon;
-
-    /**
-     * @var string|Closure the text after the expandable element.
-     */
-    public $afterValue;
-
-    /**
-     * @var string|Closure the text before the expandable element.
-     */
-    public $beforeValue;
-
-    /**
-     * @var bool whether to use the default theme
-     */
-    public $useDefaultTheme = true;
-
-    /**
-     * @var string
-     */
-    public $hideEffect = 'slideUp';
-
-    /**
-     * @var string
-     */
-    public $showEffect = 'slideDown';
-
-    /**
-     * @inheritdoc
-     */
-    public function init()
-    {
-        parent::init();
-
-        ExpandColumnAsset::register($this->grid->getView());
-
-        if (empty($this->url)) {
-            $this->url = Yii::$app->getRequest()->getUrl();
-        }
-
-        $this->registerClientScript();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function renderDataCell($model, $key, $index)
-    {
-        $contentOptions = $this->contentOptions;
-        $expandableOptions['data-row_id'] = $this->normalizeRowID($key);
-        $expandableOptions['data-col_id'] = $this->getColumnID();
-        $contentOptions['class'] = $this->getExpandableElementClass();
-
-        $options = $this->getArrayOfOptions($contentOptions, $model, $key, $index);
-
-        return Html::beginTag('td', $options)
-            . $this->getInnerContent($model, $key, $index)
-            . Html::endTag('td');
-    }
-
-    /**
-     * @param mixed $model
-     * @param mixed $key
-     * @param int $index
-     *
+     ** onclick function(model, key, index) {value, url, data, expand}
+     ** loading string
      * @return string
      */
-    protected function getInnerContent($model, $key, $index)
-    {
-        $expandableText = $this->renderDataCellContent($model, $key, $index);
-        if (empty($expandableText) || $expandableText === $this->grid->formatter->nullDisplay) {
-            return $expandableText;
-        }
+    public static function GridColumnExpandOf() {
+        return GridColumnExpandOf::class;
+    }
+}
 
-        return $this->getContentAroundExpandableElement($this->beforeValue, $model, $key, $index)
-            //. Html::beginTag('span', $this->getExpandableOptions($model, $key, $index))
-            . $expandableText
-            //. Html::endTag('span')
-            . $this->getContentAroundExpandableElement($this->afterValue, $model, $key, $index);
+/**
+ * GridColumnExpandOf
+ *
+ * @category  Class
+ * @package   Utility-Yii2
+ * @author    AlgolTeam <algol.team.uz@gmail.com>
+ * @copyright Copyright (c) 2021
+ * @link      https://github.com/algol-team
+ */
+
+class GridColumnExpandOf extends DataColumn {
+    const EXPANDED_CLASS = 'expand-column';
+    const REDIRECT = 'redirect';
+
+    public $enableCache = true;
+    public $loading = '<center><h6><i>Please, wait...</i></h6></center>';
+    public $onclick;
+
+    private $url_expand;
+    private $url_goto;
+    private $column_id;
+
+    /**
+     *
+     */
+    public function init() {
+        parent::init();
+        if (isset($this->onclick)) {
+            $this->url_expand = null;
+            $this->url_goto = null;
+            $this->column_id = md5(VarDumper::dumpAsString(get_object_vars($this), 5));
+            ExpandColumnAsset::register($this->grid->getView());
+        }
     }
 
     /**
      * @param mixed $model
      * @param mixed $key
      * @param int $index
-     *
-     * @return array
+     * @return string
      */
-    protected function getExpandableOptions($model, $key, $index)
-    {
-        $expandableOptions = $this->getArrayOfOptions($this->expandableOptions, $model, $key, $index);
-        $expandableOptions['data-row_id'] = $this->normalizeRowID($key);
-        $expandableOptions['data-col_id'] = $this->getColumnID();
-        $expandableOptions['class'] = $this->getExpandableElementClass()
-            . (isset($expandableOptions['class']) ? " {$expandableOptions['class']}" : '');
+    public function renderDataCell($model, $key, $index) {
+        if ($this->onClick($FResult, $model, $key, $index)) {
+            return Html::beginTag('td', $FResult['options'])
+                . $FResult['content']
+                . Html::endTag('td');
+        }
+        return parent::renderDataCell($model, $key, $index);
+    }
 
-        if ($this->submitData instanceof Closure) {
-            $info = call_user_func($this->submitData, $model, $key, $index);
-            $expandableOptions['data-info'] = (array)$info;
+    /**
+     * @param $AResult
+     * @param $model
+     * @param $key
+     * @param $index
+     * @return bool
+     */
+    private function onClick(&$AResult, $model, $key, $index) {
+        $AResult = null;
+        $FOnClick = ALGOL::ArrayOf()->FromFunction($this->onclick, $model, $key, $index);
+        if (ALGOL::ArrayOf()->Length($FOnClick) > 1) {
+            if (ALGOL::StrOf()->Length($FOnClick['value'], true) > 0) {
+                $AResult['content'] = $FOnClick['value'];
+                if (ALGOL::DefaultOf()->TypeCheck($AResult['content'], DTC_HTML)) $this->format = 'raw';
+            }
+            if (ALGOL::StrOf()->Length($FOnClick['url'], true) > 0) {
+                $FOptions = ALGOL::ArrayOf()->FromFunction($this->contentOptions, $model, $key, $index);
+                if (ALGOL::DefaultOf()->ValueCheck($FOnClick['expand'], true)) {
+                    if (is_null($this->url_expand)) {
+                        $this->url_expand = $FOnClick['url'];
+                        $this->regScript(true);
+                    }
+                    $FOptions['data-row_id'] = $this->normalizeRowID($key);
+                    $FOptions['data-col_id'] = $this->column_id;
+                    $FClass = self::EXPANDED_CLASS . CH_MINUS . $this->column_id;
+                } else {
+                    if (is_null($this->url_goto)) {
+                        $this->url_goto = $FOnClick['url'];
+                        $this->regScript(false);
+                    }
+                    $FClass = self::EXPANDED_CLASS . CH_MINUS . self::REDIRECT;
+                }
+                $FOptions['class'] = $FClass . (isset($FOptions['class']) ? " {$FOptions['class']}" : CH_FREE);
+                if (ALGOL::ArrayOf()->Length($FOnClick['data']) > 0) $FOptions['data-info'] = $FOnClick['data']; else $FOptions['data-info'] = is_array($key) ? $key : ['id' => $key];
+                $AResult['options'] = $FOptions;
+            }
+        }
+        return isset($AResult);
+    }
+
+    /**
+     * @param bool $AExpand
+     */
+    private function regScript($AExpand = true) {
+        if (Yii::$app->getRequest()->getIsAjax()) return;
+        if ($AExpand) {
+            $FClass = $FClass = self::EXPANDED_CLASS . CH_MINUS . $this->column_id;
+            $FOptions = Json::encode(['url' => $this->url_expand,
+                'countColumns' => count($this->grid->columns),
+                'enableCache' => (bool)$this->enableCache,
+                'loading' => $this->loading,
+                'hideEffect' => 'fadeOut',
+                'showEffect' => 'fadeIn',
+                'redirect' => false]);
         } else {
-            $expandableOptions['data-info'] = is_array($key) ? $key : ['id' => $key];
+            $FClass = $FClass = self::EXPANDED_CLASS . CH_MINUS . self::REDIRECT;
+            $FOptions = Json::encode(['url' => $this->url_goto, 'redirect' => true]);
         }
 
-        return $expandableOptions;
+        $js = <<<JS
+            jQuery(document).on('click', '#{$this->grid->getId()} .{$FClass}', function() {
+                var row = new ExpandRow({$FOptions});
+                row.run($(this));
+            });
+JS;
+        return $this->grid->getView()->registerJs($js);
     }
 
     /**
      * @param $rowID
-     *
      * @return string
      */
-    protected function normalizeRowID($rowID)
-    {
+    protected function normalizeRowID($rowID) {
         if (is_array($rowID)) {
             $rowID = implode('', $rowID);
         }
-
         return trim(preg_replace("|[^\d\w]+|iu", '', $rowID));
-    }
-
-    /**
-     * Registers the needed JavaScript
-     */
-    protected function registerClientScript()
-    {
-        if (Yii::$app->getRequest()->getIsAjax()) {
-            return;
-        }
-
-        $clientOptions = Json::encode([
-            'ajaxUrl' => $this->url,
-            'ajaxMethod' => $this->ajaxMethod,
-            'ajaxErrorMessage' => $this->ajaxErrorMessage,
-            'countColumns' => count($this->grid->columns),
-            'enableCache' => (bool)$this->enableCache,
-            'loadingIcon' => $this->loadingIcon,
-            'hideEffect' => $this->hideEffect,
-            'showEffect' => $this->showEffect,
-        ]);
-
-        $js = <<<JS
-jQuery(document).on('click', '#{$this->grid->getId()} .{$this->getExpandableElementClass()}', function() {
-    var row = new ExpandRow({$clientOptions});
-    row.run($(this));
-});
-JS;
-        $this->grid->getView()->registerJs($js);
-    }
-
-    /**
-     * Unique identifier of column
-     *
-     * @return string
-     */
-    protected function getColumnID()
-    {
-        if (empty($this->column_id)) {
-            $this->column_id = md5(VarDumper::dumpAsString(get_object_vars($this), 5));
-        }
-
-        return $this->column_id;
-    }
-
-    /**
-     * @return string
-     */
-    protected function getExpandableElementClass()
-    {
-        return self::EXPANDABLE_BEGINNING_CLASS_NAME . '-' . $this->getColumnID();
-    }
-
-    /**
-     * @param $options
-     * @param mixed $model
-     * @param mixed $key
-     * @param int $index
-     *
-     * @return array
-     */
-    protected function getArrayOfOptions($options, $model, $key, $index)
-    {
-        if ($options instanceof Closure) {
-            $options = call_user_func($options, $model, $key, $index, $this);
-        }
-
-        return (array)$options;
-    }
-
-    /**
-     * @param string|Closure $value
-     * @param mixed $model
-     * @param mixed $key
-     * @param int $index
-     *
-     * @return string|null
-     */
-    protected function getContentAroundExpandableElement($value, $model, $key, $index)
-    {
-        if ($value !== null) {
-            if (is_string($value)) {
-                $value = ArrayHelper::getValue($model, $value);
-            } else {
-                $value = call_user_func($value, $model, $key, $index, $this);
-            }
-            if (!empty($value)) {
-                return $this->grid->formatter->format($value, $this->format);
-            }
-        }
-
-        return null;
     }
 }
 
@@ -294,10 +176,8 @@ JS;
  */
 
 class ExpandColumnAsset extends AssetBundle {
-
-    public $sourcePath = '@algol-team/library-yii2/assets';
-
-    public $js = [YII_DEBUG ? 'js/expand-column.js' : 'js/expand-column.min.js'];
-
+    public $sourcePath = '@vendor/algol-team/library-yii2/assets';
+    public $js = ['js/expand-column.js'];
+    public $css = ['css/expand-column.css'];
     public $depends = ['yii\web\JqueryAsset'];
 }

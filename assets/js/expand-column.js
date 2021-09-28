@@ -1,15 +1,14 @@
 var ExpandRow = function (options) {
-    var ajaxUrl = options.ajaxUrl,
-        ajaxMethod = options.ajaxMethod,
-        ajaxErrorMessage = options.ajaxErrorMessage,
+    var _url = options.url,
         countColumns = options.countColumns,
         enableCache = options.enableCache,
-        loadingIcon = options.loadingIcon,
+        loading = options.loading,
         showEffect = options.showEffect,
-        hideEffect = options.hideEffect;
+        hideEffect = options.hideEffect,
+        redirect = options.redirect;
 
     this.hideNotCurrent = function (rowID, current) {
-        this.hide($("tr[id^=expand-row-column-detail" + rowID + "]").not(current));
+        this.hide($("tr[id^=expand-column-detail-" + rowID + "]").not(current));
     };
 
     this.hide = function (element) {
@@ -39,45 +38,60 @@ var ExpandRow = function (options) {
     };
 
     this.run = function ($el) {
-        var row_id = $el.data('row_id'),
-            col_id = $el.data('col_id'),
-            ajaxData = $el.data('info'),
-            parent = $el.parents('tr').eq(0),
-            tr = $('#expand-row-column-detail' + row_id + col_id);
-
-        if (tr.length && !tr.is(':visible') && enableCache) {
-            this.hideNotCurrent(row_id, tr);
-            this.show(tr);
-            return;
-        } else if (tr.length && tr.is(':visible')) {
-            this.hide(tr);
-            return;
-        }
-
-        if (tr.length) {
-            this.hideNotCurrent(row_id, tr);
-            tr.find('td').html(loadingIcon);
-            if (!tr.is(':visible')) {
-                this.show(tr);
+        if (redirect === true) {
+            var params = $el.data('info');
+            var form = document.createElement("form");
+            form.setAttribute("method", "post");
+            form.setAttribute("action", _url);
+            for(var key in params) {
+                if(params.hasOwnProperty(key)) {
+                    var hiddenField = document.createElement("input");
+                    hiddenField.setAttribute("type", "hidden");
+                    hiddenField.setAttribute("name", key);
+                    hiddenField.setAttribute("value", params[key]);
+                    form.appendChild(hiddenField);
+                }
             }
+            document.body.appendChild(form);
+            form.submit();
         } else {
-            this.hide($("tr[id^=expand-row-column-detail" + row_id + "]"));
-            var td = $('<td/>').html(loadingIcon).attr({'colspan': countColumns});
-            tr = $('<tr/>').prop({'id': 'expand-row-column-detail' + row_id + col_id}).append(td);
-            parent.after(tr);
-        }
-
-        $.ajax({
-            url: ajaxUrl,
-            method: ajaxMethod,
-            data: ajaxData,
-            success: function (data) {
-                tr.find('td').html(data);
-            },
-            error: function () {
-                tr.find('td').html(ajaxErrorMessage);
+            var row_id = $el.data('row_id'),
+                col_id = $el.data('col_id'),
+                _data = $el.data('info'),
+                parent = $el.parents('tr').eq(0),
+                tr = $('#expand-column-detail-' + row_id + col_id);
+            if (tr.length && !tr.is(':visible') && enableCache) {
+                this.hideNotCurrent(row_id, tr);
+                this.show(tr);
+                return;
+            } else if (tr.length && tr.is(':visible')) {
+                this.hide(tr);
+                return;
             }
-        });
+            if (tr.length) {
+                this.hideNotCurrent(row_id, tr);
+                tr.find('td').html(loading);
+                if (!tr.is(':visible')) {
+                    this.show(tr);
+                }
+            } else {
+                this.hide($("tr[id^=expand-column-detail-" + row_id + "]"));
+                var td = $('<td/>').html(loading).attr({'colspan': countColumns});
+                tr = $('<tr/>').prop({'id': 'expand-column-detail-' + row_id + col_id}).append(td);
+                parent.after(tr);
+            }
+            $.ajax({
+                url: _url,
+                method: 'GET',
+                data: _data,
+                success: function (data) {
+                    tr.find('td').html(data);
+                },
+                error: function () {
+                    tr.find('td').html('not found page');
+                }
+            });
+        }
     };
 
 };
